@@ -1,8 +1,9 @@
 from market import app
 from flask import render_template,redirect, url_for,flash,get_flashed_messages
 from market.models import Item,User
-from market.forms import RegisterForm
+from market.forms import RegisterForm,LoginForm
 from market import db
+from flask_login import login_user
 
 @app.route('/')
 @app.route('/home')
@@ -32,6 +33,17 @@ def register_page():
 
 
 
-@app.route('/login')
+@app.route('/login',methods=['GET','POST'])
 def login_page():
-    return render_template('login.html')
+    form=LoginForm()
+    if form.validate_on_submit():
+        temp_user=User.query.filter_by(username=form.username.data).first()
+        if temp_user and temp_user.passwordCorrection(userPass=form.password.data):
+            login_user(temp_user)
+            flash(f'Success! You are Logged in as:{temp_user.username }',category='success')
+            return redirect(url_for('market_page'))
+        else:
+            flash('Username and Password are not match! Please try again',category='danger')
+
+
+    return render_template('login.html',form=form)
