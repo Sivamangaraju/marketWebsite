@@ -14,6 +14,17 @@ class User(db.Model,UserMixin):
     password_hash=db.Column(db.String(length=60),nullable=False)
     budget=db.Column(db.Integer(),nullable=False,default=1000)
     items=db.relationship('Item',backref='owned_user',lazy=True)
+
+    @property
+    def modifyBudget(self):
+        if len(str(self.budget))>=4:
+            return f'{str(self.budget)[:-3]},{str(self.budget)[-3:]}$'
+
+        else:
+            return f"{self.budget}$"
+
+
+
     
     @property
     def password(self):
@@ -24,9 +35,17 @@ class User(db.Model,UserMixin):
         self.password_hash = bcrypt.generate_password_hash(passText).decode('utf-8')
 
     def passwordCorrection(self,userPass):
-       if self.password_hash==userPass or bcrypt.check_password_hash(self.password_hash,userPass):
+       if self.password_hash==userPass or  bcrypt.check_password_hash(self.password_hash,userPass):
            return True
        return False
+    
+    def can_purchase(self,item_obj):
+        return self.budget>=item_obj.price
+    
+    def can_sell(self,item_obj):
+        return item_obj in self.items
+
+
            
         
         
@@ -43,6 +62,16 @@ class Item(db.Model):
 
     def __repr__(self):
         return f'Item {self.name}{self.barcode}{self.description}{self.price}{self.id}'
+    
+    def buy(self,user):
+        self.owner=user.id
+        user.budget-=self.price
+        db.session.commit()
+    
+    def sell(self,user):
+        self.owner=None
+        user.budget+=self.price
+        db.session.commit()
     
 
 
